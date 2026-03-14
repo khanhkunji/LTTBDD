@@ -63,19 +63,26 @@ Dựa trên yêu cầu, cơ sở dữ liệu được cấu trúc thành các th
 
 ```mermaid
 erDiagram
-    USER ||--o{ ORDER : "đặt"
-    USER ||--o{ CART_ITEM : "có"
-    USER ||--o{ REVIEW : "viết"
+    NGUOIDUNG ||--o{ DONHANG : "đặt"
+    NGUOIDUNG ||--|| GIOHANG : "sở hữu"
+    NGUOIDUNG ||--o{ DANHGIA : "viết"
     
-    CATEGORY ||--|{ PRODUCT : "chứa"
+    DANHMUC ||--|{ SANPHAM : "chứa"
     
-    PRODUCT ||--o{ ORDER_DETAIL : "nằm trong"
-    PRODUCT ||--o{ CART_ITEM : "được thêm vào"
-    PRODUCT ||--o{ REVIEW : "nhận"
+    SANPHAM ||--o{ SANPHAM_SIZE : "có"
+    SANPHAM ||--o{ CHITIET_DONHANG : "nằm trong"
+    SANPHAM ||--o{ CHITIET_GIOHANG : "được thêm vào"
+    SANPHAM ||--o{ DANHGIA : "nhận"
     
-    ORDER ||--|{ ORDER_DETAIL : "bao gồm"
+    GIOHANG ||--|{ CHITIET_GIOHANG : "chứa"
+    
+    DONHANG ||--|{ CHITIET_DONHANG : "bao gồm"
+    DONHANG ||--|| THANHTOAN : "thực hiện"
 
-    USER {
+    SANPHAM_SIZE ||--o{ CHITIET_GIOHANG : "chọn"
+    SANPHAM_SIZE ||--o{ CHITIET_DONHANG : "mua"
+
+    NGUOIDUNG {
         int id PK
         string ho_ten
         string email
@@ -83,13 +90,13 @@ erDiagram
         tinyint vai_tro
     }
     
-    CATEGORY {
+    DANHMUC {
         int id PK
         string ten_danh_muc
         int danh_muc_cha_id FK
     }
     
-    PRODUCT {
+    SANPHAM {
         int id PK
         int danh_muc_id FK
         string ten_san_pham
@@ -98,32 +105,82 @@ erDiagram
         float diem_danh_gia_tb
     }
     
-    CART_ITEM {
+    SANPHAM_SIZE {
+        int id PK
+        int sanpham_id FK
+        string ten_size
+        int so_luong_ton
+    }
+    
+    GIOHANG {
+        int id PK
+        int nguoidung_id FK
+        datetime ngay_cap_nhat
+    }
+    
+    CHITIET_GIOHANG {
+        int id PK
         int giohang_id FK
         int sanpham_id FK
-        int size_id
+        int size_id FK
         int so_luong
     }
     
-    ORDER {
+    DONHANG {
         int id PK
         int nguoidung_id FK
+        string ma_don_hang
         datetime ngay_dat
         decimal tong_tien
         string trang_thai
     }
     
-    ORDER_DETAIL {
+    CHITIET_DONHANG {
+        int id PK
         int donhang_id FK
         int sanpham_id FK
+        int size_id FK
         int so_luong
         decimal don_gia
     }
     
-    REVIEW {
+    THANHTOAN {
+        int id PK
+        int donhang_id FK
+        string phuong_thuc
+        string trang_thai
+    }
+    
+    DANHGIA {
         int id PK
         int nguoidung_id FK
         int sanpham_id FK
         int donhang_id FK
         tinyint diem
     }
+```
+
+---
+
+## IV. GIẢI THÍCH TÓM TẮT MÔ HÌNH (ERD)
+
+Mô hình dữ liệu được thiết kế tập trung vào việc tối ưu hóa quy trình mua bán linh kiện máy tính, đảm bảo tính toàn vẹn dữ liệu lịch sử và dễ dàng mở rộng. Dưới đây là giải thích tóm tắt về các mối quan hệ và ý đồ thiết kế:
+
+### 1. Các mối quan hệ cốt lõi (Relationships)
+
+* **Quan hệ 1 - 1 (Một - Một):**
+    * **`NGUOIDUNG` - `GIOHANG`:** Mỗi tài khoản người dùng chỉ sở hữu duy nhất một giỏ hàng đang hoạt động để lưu trữ các sản phẩm chọn mua tạm thời.
+    * **`DONHANG` - `THANHTOAN`:** Mỗi đơn hàng gắn liền với một giao dịch thanh toán cụ thể, giúp đối soát mã giao dịch (VNPay, MoMo, Bank) một cách chính xác và dễ dàng.
+* **Quan hệ 1 - N (Một - Nhiều):**
+    * **`DANHMUC` - `SANPHAM`:** Một danh mục (VD: RAM) có thể chứa nhiều sản phẩm (RAM Kingston, RAM Corsair), nhưng một sản phẩm chỉ thuộc một danh mục cụ thể. *(Bảng `DANHMUC` còn tự liên kết với chính nó qua `danh_muc_cha_id` để tạo cấu trúc danh mục Cha - Con).*
+    * **`NGUOIDUNG` - `DONHANG`:** Một người dùng có thể đặt nhiều đơn hàng theo thời gian.
+    * **`SANPHAM` - `SANPHAM_SIZE`:** Một linh kiện có thể có nhiều phiên bản (Ví dụ: RAM có bản 8GB và 16GB). Mỗi phiên bản sẽ có một định danh (`size_id`) và số lượng tồn kho riêng biệt.
+* **Quan hệ N - N (Nhiều - Nhiều) - Được phân rã qua bảng chi tiết:**
+    * **Sản phẩm & Đơn hàng -> `CHITIET_DONHANG`:** Một đơn hàng bao gồm nhiều sản phẩm, một sản phẩm có thể nằm trong nhiều đơn hàng. Bảng `CHITIET_DONHANG` sinh ra để lưu thông tin mua sắm thực tế (số lượng, giá tiền lúc mua).
+    * **Sản phẩm & Giỏ hàng -> `CHITIET_GIOHANG`:** Tương tự như đơn hàng, bảng này phân rã để lưu số lượng và kích cỡ sản phẩm đang chờ thanh toán của người dùng.
+
+### 2. Các điểm sáng trong Thiết kế cần nhấn mạnh
+
+* **Bảo toàn lịch sử giá (`don_gia` trong `CHITIET_DONHANG`):** Giá của linh kiện điện tử biến động liên tục. Việc sao chép và lưu cứng `don_gia` vào bảng chi tiết ngay tại thời điểm khách bấm đặt hàng giúp đảm bảo tổng tiền của hóa đơn cũ không bao giờ bị sai lệch, ngay cả khi Admin cập nhật giá mới ở bảng `SANPHAM`.
+* **Quản lý tồn kho linh hoạt (`SANPHAM_SIZE`):** Việc tách riêng bảng `SANPHAM_SIZE` giúp quản lý độc lập số lượng tồn kho của từng biến thể sản phẩm (như dung lượng, tốc độ bus), đáp ứng đúng đặc thù đa dạng của ngành hàng linh kiện máy tính.
+* **Đánh giá thực chất (Verified Purchase trong `DANHGIA`):** Bảng `DANHGIA` được thiết kế liên kết đồng thời với `sanpham_id`, `nguoidung_id` và `donhang_id`. Điều này khóa chặt logic hệ thống: **Chỉ những khách hàng đã thực sự mua thành công sản phẩm trong một đơn hàng cụ thể mới được phép để lại bình luận và chấm điểm**.
