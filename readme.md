@@ -9,7 +9,6 @@
 ### 1. Phân quyền người dùng (Role-Based Access Control)
 Hệ thống quản lý người dùng theo các cấp độ vai trò khác nhau, đáp ứng tính linh hoạt trong vận hành:
 * **Khách hàng (User):** Người dùng hệ thống với mục đích tìm kiếm, mua sắm và theo dõi đơn hàng cá nhân.
-* **Quản trị viên (Admin):** Nhân viên cửa hàng có quyền quản lý danh mục, sản phẩm và đơn hàng.
 * **Quản trị cấp cao (Super Admin):** Quản lý toàn quyền hệ thống, bao gồm cả việc cấp phát, chuyển đổi vai trò (phân quyền) cho các tài khoản Admin khác.
 
 ### 2. Chi tiết Chức năng theo Vai trò
